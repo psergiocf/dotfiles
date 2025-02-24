@@ -1,0 +1,2 @@
+# support other version manager files (.nvmrc, .ruby-version, etc.)
+legacy_version_file = yes

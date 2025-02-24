@@ -1,0 +1,218 @@
+#!/bin/bash
+# ~/.macos https://github.com/kentcdodds/dotfiles/blob/main/.macos
+# Modified by Sérgio Freitas
+# Run without downloading:
+# curl https://raw.githubusercontent.com/psergiocf/dotfiles/main/.macos | bash
+
+# Ensure the script stops if any command fails
+set -e
+
+
+################################################################################
+#                               Set Super User                                 #
+################################################################################
+
+# Ask for the administrator password upfront
+sudo -v
+
+# Keep-alive: update existing `sudo` time stamp until `.macos` has finished
+while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
+
+echo "🚀 Hello $(whoami)! Let's get you set up."
+
+
+################################################################################
+#                               Install Software                               #
+################################################################################
+
+echo "⏳ Installing Homebrew"
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+echo "⏳ Adding Homebrew to PATH"
+touch $HOME/.zshrc
+echo "export PATH=/opt/homebrew/bin:$PATH" >> $HOME/.zshrc
+source $HOME/.zshrc
+echo "✅ Homebrew installed"
+
+echo "⏳ Updating Homebrew formulae list"
+brew update
+
+echo "⏳ Installing CLI tools"
+# List of terminal tools
+TOOLS=(
+    asdf
+    coreutils
+    git-delta
+    gh
+    git
+    imagemagick
+    tree
+    openjdk@17
+)
+
+# Install each tool
+for TOOL in "${TOOLS[@]}"; do
+    brew install "$TOOL"
+done
+echo "✅ CLI tools installed"
+
+
+echo "⏳ Installing apps"
+# List of apps
+APPS=(
+    android-file-transfer
+    android-studio
+    docker
+    firefox
+    google-chrome
+    maccy
+    mysqlworkbench
+    notion
+    beyond-compare
+    postman
+    rectangle
+    #slack
+    spotify
+    visual-studio-code
+    #watchman
+    iterm2
+    logitune
+    fork
+)
+
+# Install each app
+for APP in "${APPS[@]}"; do
+    brew install --cask "$APP"
+done
+echo "✅ Apps installed"
+
+
+echo "⏳ Installing VSCode extensions"
+# List of VSCode extensions
+EXTENSIONS=(
+    streetsidesoftware.code-spell-checker
+    github.copilot
+    wmaurer.change-case
+    ms-azuretools.vscode-docker
+    editorconfig.editorconfig
+    dbaeumer.vscode-eslint
+    letrieu.expand-region
+    mhutchie.git-graph
+    github.vscode-github-actions
+    github.copilot-chat
+    github.vscode-pull-request-github
+    eamodio.gitlens
+    graphql.vscode-graphql-syntax
+    oderwat.indent-rainbow
+    ypresto.vscode-intelli-refactor
+    firsttris.vscode-jest-runner
+    jq-syntax-highlighting.jq-syntax-highlighting
+    manuth.markdown-converter
+    bierner.markdown-mermaid
+    pkief.material-icon-theme
+    christian-kohler.path-intellisense
+    esbenp.prettier-vscode
+    yoavbls.pretty-ts-errors
+    tyriar.sort-lines
+    pflannery.vscode-versionlens
+    davidnussio.vscode-jq-playground
+    redhat.vscode-yaml
+)
+
+# Install each extension
+for EXTENSION in "${EXTENSIONS[@]}"; do
+    code --install-extension "$EXTENSION"
+done
+echo "✅ VSCode extension installed"
+
+
+################################################################################
+#                                Set Up Software                               #
+################################################################################
+
+echo "⏳ Setting zsh as default shell"
+chsh -s $(which zsh)
+
+echo "⏳ Installing oh-my-zsh"
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+
+echo "⏳ Installing oh-my-zsh plugins"
+git clone https://github.com/zsh-users/zsh-autosuggestions ~/.oh-my-zsh/custom/plugins/zsh-autosuggestions
+git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ~/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
+
+
+echo "⏳ Installing asdf plugins"
+PLUGINS=(
+    nodejs
+    python
+    ruby
+)
+
+for PLUGIN in "${PLUGINS[@]}"; do
+    asdf plugin add $PLUGIN
+done
+
+
+echo "⏳ Enabling corepack"
+corepack enable
+
+# Set GitHub SSH key
+echo "⏳ Generating GitHub SSH key"
+mkdir -p $HOME/.ssh/personal
+ssh-keygen -t ed25519 -C "psergiocf@gmail.com" -N "" -f $HOME/.ssh/personal/github_id_personal
+eval "$(ssh-agent -s)"
+touch $HOME/.ssh/config
+printf "
+# Personal GitHub account
+Host github-personal.com
+  HostName github.com
+  AddKeysToAgent yes
+  UseKeychain yes
+  IdentityFile $HOME/.ssh/personal/github_id_personal
+  
+" >> $HOME/.ssh/config
+ssh-add --apple-use-keychain $HOME/.ssh/personal/github_id_personal
+
+echo "⏳ Authenticating to GitHub"
+gh auth login --hostname github.com --git-protocol ssh
+
+echo "⏳ Requesting GitHub admin public key"
+gh auth refresh -h github.com -s admin:public_key
+
+echo "⏳ Adding public key to GitHub"
+gh ssh-key add $HOME/.ssh/personal/github_id_personal.pub --title $(hostname)
+
+
+################################################################################
+#                                Clone Projects                                #
+################################################################################
+
+# Workspaces directory
+WORKSPACES_DIR="$HOME/Projects/personal/workspaces"
+
+echo "⏳ Creating personal workspaces folder '$WORKSPACES_DIR'"
+mkdir -p "$WORKSPACES_DIR"
+
+DOTFILES_REPO=git@github.com:psergiocf/dotfiles.git
+DOTFILES_PATH=$WORKSPACES_DIR/dotfiles
+echo "⏳ Cloning '$DOTFILES_REPO' to '$DOTFILES_PATH'"
+git clone $DOTFILES_REPO $DOTFILES_PATH
+
+# This is required to be able to use personal ssh key on personal projects
+echo "⏳ Updating 'dotfiles' origin to 'git@github-personal.com'"
+cd $DOTFILES_PATH
+git remote set-url origin git@github-personal.com:psergiocf/dotfiles.git
+
+echo "⏳ Copying configuration files"
+cp ".asdfrc" "$HOME/.asdfrc"
+cp ".gitconfig" "$HOME/.gitconfig"
+cp ".gitconfig_personal" "$HOME/.gitconfig_personal"
+cp ".zshrc" "$HOME/.zshrc"
+cp ".gitignore_global" "$HOME/.gitignore_global"
+cp "Library/Application Support/Code/User/settings.json" "$HOME/Library/Application Support/Code/User/settings.json"
+
+
+printf "🎉 Setup complete! Here are some reminders:
+  - Reload zsh with 'source ~/.zshrc' or restart your terminal to see all changes
+  - You may need to restart your IDE or your computer to see all changes
+"
