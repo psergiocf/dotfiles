@@ -1,0 +1,22 @@
+[includeIf "gitdir:~/Projects/personal/"]
+  path = ~/.gitconfig_personal
+
+[includeIf "gitdir:~/Projects/work/"]
+  path = ~/.gitconfig_work
+
+[user]
+  name = Sérgio Freitas
+
+[core]
+  excludesfile = ~/.gitignore_global
+  pager = delta
+
+[pull]
+  rebase = true
+
+[interactive]
+  diffFilter = delta --color-only
+
+[delta]
+  tabs = 2
+  side-by-side = true
