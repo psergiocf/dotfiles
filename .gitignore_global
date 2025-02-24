@@ -1,0 +1,50 @@
+
+# Misc
+.DS_Store
+.cache
+
+# VSCode
+.vscode/
+
+# Local history
+.history/
+
+# npm
+npm-debug.log
+node_modules/
+
+# yarn
+yarn-error.log
+
+# pnpm
+.pnp.*
+
+# Build
+target/
+dist/
+
+# yalc
+.yalc
+yalc.lock
+
+# Testing
+coverage/
+reports/
+
+# eslint
+.eslintcache
+
+# Notes
+.notes
+
+# Certificates
+*.pem
+*.key
+*.crt
+*.csr
+*.ca
+*.pfx
+*.p12
+
+# Environment
+.env
