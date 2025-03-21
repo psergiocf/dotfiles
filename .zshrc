@@ -33,6 +33,47 @@ alias sbp='source ~/.zshrc'     # sbp:  Reload .zshrc
 alias ..="cd .."
 alias ....='cd ../..'
 
+# Remove files or folders
+# Usage: rm_recursive <name> [--all]
+#   --all: Include .gitignored files
+# Example: rm_recursive "node_modules" --all
+rm_recursive() {
+  local include_ignored=0
+  local name=""
+
+  # Parse arguments
+  while [[ $# -gt 0 ]]; do
+    case $1 in
+      --all)  # Include .gitignored files
+        include_ignored=1
+        shift
+        ;;
+      *)
+        name=$1
+        shift
+        ;;
+    esac
+  done
+
+  if [[ -z "$name" ]]; then
+    echo "Usage: rm_recursive <name> [--all]"
+    return 1
+  fi
+
+
+  if [[ $include_ignored -eq 1 ]]; then
+    # Remove all matching files/folders, including git-ignored ones
+    find . -name "$name" -exec rm -rf {} +
+  else
+    # Find files that are NOT ignored by Git and remove them
+    find . -name "$name" -print | while read -r file; do
+      if ! git check-ignore -q "$file"; then
+        rm -rf "$file"
+      fi
+    done
+  fi
+}
+
 # -------------------------------------------------------------------------------
 # SEARCHING
 # -------------------------------------------------------------------------------
